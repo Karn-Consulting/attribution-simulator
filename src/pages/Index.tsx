@@ -281,7 +281,9 @@ const Index = () => {
       const noiseAmplitude = noise === "low" ? 0.04 : noise === "medium" ? 0.08 : 0.14;
       const trendDrift = model === "bayesian_mmm" ? 0.015 : model === "time_decay" ? 0.01 : 0.005;
 
-      let seed = Math.floor(totalSpend / 1000 + (model === "bayesian_mmm" ? 17 : model === "time_decay" ? 11 : 5) + window);
+      let seed = Math.floor(
+        totalSpend / 1000 + (model === "bayesian_mmm" ? 17 : model === "time_decay" ? 11 : 5) + window,
+      );
       const rand = () => {
         seed = (seed * 9301 + 49297) % 233280;
         return seed / 233280;
@@ -309,6 +311,105 @@ const Index = () => {
     },
     [blendedROAS, blendedCAC, window, saturation, noise, model, totalSpend],
   );
+
+  const weeklySeriesOptimized = useMemo(
+    () => {
+      const uplift = 1 + simulatedEfficiencyGain * 0.65;
+      const weeks = weeklySeries.length || 0;
+
+      return weeklySeries.map((point, idx) => {
+        const midPoint = weeks / 2 + 0.5;
+        const ramp = 0.9 + (idx + 1 - midPoint) * 0.01;
+        const boundedRamp = Math.max(0.8, Math.min(1.1, ramp));
+
+        return {
+          week: point.week,
+          ROAS: Number((point.ROAS * uplift * boundedRamp).toFixed(2)),
+          CAC: Number((point.CAC / (uplift * boundedRamp || 1)).toFixed(0)),
+        };
+      });
+    },
+    [weeklySeries, simulatedEfficiencyGain],
+  );
+
+  const perChannelWeeklySeries = useMemo(
+    () => {
+      const weeks = weeklySeries.length || 0;
+      if (!weeks) return [] as Array<{ week: string } & Record<Channel, number>>;
+
+      const baseRoasByChannel: Record<Channel, number> = CHANNELS.reduce((acc, ch) => {
+        const found = outputs.find((o) => o.channel === ch);
+        acc[ch] = found ? found.roas || 1 : 1;
+        return acc;
+      }, {} as Record<Channel, number>);
+
+      return Array.from({ length: weeks }, (_, idx) => {
+        const weekIndex = idx + 1;
+        const variance = 1 + (idx - weeks / 2) * 0.01;
+
+        const row: { week: string } & Record<Channel, number> = {
+          week: `W${weekIndex}`,
+          Meta: 0,
+          "Google Search": 0,
+          LinkedIn: 0,
+        } as { week: string } & Record<Channel, number>;
+
+        CHANNELS.forEach((ch, channelIdx) => {
+          const channelDrift = 1 + (channelIdx - 1) * 0.03;
+          const roas = baseRoasByChannel[ch] * variance * channelDrift;
+          row[ch] = Number(roas.toFixed(2));
+        });
+
+        return row;
+      });
+    },
+    [weeklySeries, outputs],
+  );
+
+  type CohortRow = {
+    bucket: string;
+    cumulative: number;
+    incremental: number;
+    note: string;
+  };
+
+  const cohortTable: CohortRow[] = useMemo(() => {
+    const baseCurve = window === 7 ? [0.55, 0.8, 0.95, 1] : window === 14 ? [0.35, 0.6, 0.8, 0.92, 0.98, 1] : [
+      0.18,
+      0.35,
+      0.55,
+      0.72,
+      0.85,
+      0.93,
+      0.97,
+      1,
+    ];
+
+    const noiseAdjust = noise === "low" ? 0.01 : noise === "medium" ? 0.03 : 0.06;
+
+    const rows: CohortRow[] = [];
+    let prev = 0;
+
+    baseCurve.forEach((cum, idx) => {
+      const adjustedCum = Math.max(0, Math.min(1, cum + (idx - baseCurve.length / 2) * noiseAdjust * 0.1));
+      const incremental = Math.max(0, adjustedCum - prev);
+      prev = adjustedCum;
+
+      rows.push({
+        bucket: idx === 0 ? "Week 0–1" : `Week ${idx}–${idx + 1}`,
+        cumulative: adjustedCum,
+        incremental,
+        note:
+          idx === 0
+            ? "Short-lag, lower-funnel dominated conversions."
+            : idx < 3
+              ? "Mix of retargeting and some prospecting-driven conversions."
+              : "Longer-lag, prospecting-heavy cohorts with higher modeled incremental lift.",
+      });
+    });
+
+    return rows;
+  }, [window, noise]);
 
   return (
     <div className="min-h-screen bg-[hsl(var(--surface-subtle))]">
@@ -648,66 +749,248 @@ const Index = () => {
                   </div>
                 </CardContent>
               </Card>
-
-              <Card className="border-border/80 bg-gradient-to-r from-primary/5 via-background to-accent/5 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-sm flex items-center justify-between gap-3">
-                    Decision-grade summary
-                    <span className="rounded-full bg-background/80 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                      Model: {model === "bayesian_mmm" ? "Bayesian MMM (simplified)" : model.replace("_", " ")}
-                    </span>
-                  </CardTitle>
-                  <CardDescription className="text-xs max-w-2xl">
-                    Based on the current assumptions, the system recommends reallocating budget away from over-credited
-                    lower-funnel impressions towards under-credited demand creation to improve blended CAC.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-4 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.2fr)] items-start">
-                  <div className="space-y-2 text-xs">
-                    <p>
-                      Reallocating approximately <span className="font-semibold">30% of spend</span> from
-                      over-credited channels to under-credited channels improves modeled blended CAC by roughly
-                      <span className="font-semibold"> {percentFormatter.format(simulatedEfficiencyGain)}</span> while
-                      preserving overall volume.
-                    </p>
-                    <p className="text-muted-foreground">
-                      The exact mix will depend on your vertical, payback targets, and appetite for short-term
-                      volatility, but the directional signal is robust across most noise scenarios.
-                    </p>
-                  </div>
-
-                  <div className="rounded-lg border bg-background/70 p-3">
-                    <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                      Budget reallocation (directional)
-                    </p>
-                    <Table className="text-xs">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[40%]">Channel</TableHead>
-                          <TableHead>Before</TableHead>
-                          <TableHead>After</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {budgetPlan.map((row) => (
-                          <TableRow key={row.channel}>
-                            <TableCell className="font-medium">{row.channel}</TableCell>
-                            <TableCell>{currencyFormatter.format(row.before)}</TableCell>
-                            <TableCell>{currencyFormatter.format(row.after)}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                    <p className="mt-2 text-[11px] text-muted-foreground">
-                      Totals are normalized to maintain a monthly budget of {currencyFormatter.format(afterSpendTotal)}
-                      . Figures are indicative, not prescriptive.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </section>
+ 
+               <Card className="border-border/80 bg-card shadow-sm">
+                 <CardHeader>
+                   <CardTitle className="text-sm">Time-series & cohort dynamics</CardTitle>
+                   <CardDescription className="text-xs max-w-2xl">
+                     Weekly ROAS, CAC, and conversion lag structure under the current mix versus an optimized
+                     reallocation scenario, plus how cohorts realize over time.
+                   </CardDescription>
+                 </CardHeader>
+                 <CardContent className="space-y-4">
+                   <Tabs defaultValue="blended" className="space-y-3">
+                     <TabsList className="grid w-full grid-cols-3 bg-muted/70">
+                       <TabsTrigger value="blended" className="text-xs">Blended weekly trends</TabsTrigger>
+                       <TabsTrigger value="per_channel" className="text-xs">Per-channel ROAS</TabsTrigger>
+                       <TabsTrigger value="cohorts" className="text-xs">Lagged cohorts</TabsTrigger>
+                     </TabsList>
+ 
+                     <TabsContent value="blended" className="space-y-4">
+                       <div className="h-40 md:h-48">
+                         <ResponsiveContainer width="100%" height="100%">
+                           <LineChart data={weeklySeries}>
+                             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" />
+                             <XAxis dataKey="week" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                             <YAxis
+                               tick={{ fontSize: 11 }}
+                               tickLine={false}
+                               axisLine={false}
+                               label={{ value: "ROAS", angle: -90, position: "insideLeft", fontSize: 10 }}
+                             />
+                             <RechartsTooltip
+                               contentStyle={{ fontSize: 11 }}
+                               formatter={(value: number) => numberFormatter.format(value)}
+                             />
+                             <Legend formatter={(value) => <span className="text-xs">{value}</span>} />
+                             <Line
+                               type="monotone"
+                               dataKey="ROAS"
+                               name="Current mix ROAS"
+                               stroke="hsl(var(--primary))"
+                               strokeWidth={2}
+                               dot={false}
+                               activeDot={{ r: 3 }}
+                             />
+                             <Line
+                               type="monotone"
+                               dataKey="ROAS"
+                               data={weeklySeriesOptimized}
+                               name="Optimized mix ROAS"
+                               stroke="hsl(var(--accent))"
+                               strokeWidth={2}
+                               dot={false}
+                               activeDot={{ r: 3 }}
+                             />
+                           </LineChart>
+                         </ResponsiveContainer>
+                       </div>
+ 
+                       <div className="h-40 md:h-48">
+                         <ResponsiveContainer width="100%" height="100%">
+                           <LineChart data={weeklySeries}>
+                             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" />
+                             <XAxis dataKey="week" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                             <YAxis
+                               tick={{ fontSize: 11 }}
+                               tickLine={false}
+                               axisLine={false}
+                               label={{ value: "CAC", angle: -90, position: "insideLeft", fontSize: 10 }}
+                             />
+                             <RechartsTooltip
+                               contentStyle={{ fontSize: 11 }}
+                               formatter={(value: number) => currencyFormatter.format(value)}
+                             />
+                             <Legend formatter={(value) => <span className="text-xs">{value}</span>} />
+                             <Line
+                               type="monotone"
+                               dataKey="CAC"
+                               name="Current mix CAC"
+                               stroke="hsl(var(--muted-foreground))"
+                               strokeWidth={2}
+                               dot={false}
+                               activeDot={{ r: 3 }}
+                             />
+                             <Line
+                               type="monotone"
+                               dataKey="CAC"
+                               data={weeklySeriesOptimized}
+                               name="Optimized mix CAC"
+                               stroke="hsl(var(--primary))"
+                               strokeWidth={2}
+                               strokeDasharray="5 4"
+                               dot={false}
+                               activeDot={{ r: 3 }}
+                             />
+                           </LineChart>
+                         </ResponsiveContainer>
+                       </div>
+ 
+                       <p className="text-[11px] text-muted-foreground">
+                         Optimized curves apply the modeled efficiency gain while preserving week-to-week volatility,
+                         illustrating how MMM-style reallocation affects trend-level ROAS and CAC rather than any
+                         single point estimate.
+                       </p>
+                     </TabsContent>
+ 
+                     <TabsContent value="per_channel" className="space-y-3">
+                       <div className="h-56">
+                         <ResponsiveContainer width="100%" height="100%">
+                           <LineChart data={perChannelWeeklySeries}>
+                             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" />
+                             <XAxis dataKey="week" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                             <YAxis
+                               tick={{ fontSize: 11 }}
+                               tickLine={false}
+                               axisLine={false}
+                               label={{ value: "ROAS by channel", angle: -90, position: "insideLeft", fontSize: 10 }}
+                             />
+                             <RechartsTooltip
+                               contentStyle={{ fontSize: 11 }}
+                               formatter={(value: number) => numberFormatter.format(value)}
+                             />
+                             <Legend formatter={(value) => <span className="text-xs">{value}</span>} />
+                             <Line
+                               type="monotone"
+                               dataKey="Meta"
+                               stroke="hsl(var(--primary))"
+                               strokeWidth={2}
+                               dot={false}
+                             />
+                             <Line
+                               type="monotone"
+                               dataKey="Google Search"
+                               stroke="hsl(var(--accent))"
+                               strokeWidth={2}
+                               dot={false}
+                             />
+                             <Line
+                               type="monotone"
+                               dataKey="LinkedIn"
+                               stroke="hsl(var(--muted-foreground))"
+                               strokeWidth={2}
+                               dot={false}
+                             />
+                           </LineChart>
+                         </ResponsiveContainer>
+                       </div>
+                       <p className="text-[11px] text-muted-foreground">
+                         Channel curves are scaled off the modeled ROAS for each platform, highlighting how Meta,
+                         Google Search, and LinkedIn respond differently to lag, saturation, and volatility.
+                       </p>
+                     </TabsContent>
+ 
+                     <TabsContent value="cohorts" className="space-y-3">
+                       <Table className="text-xs">
+                         <TableHeader>
+                           <TableRow>
+                             <TableHead className="w-[30%]">Lag bucket</TableHead>
+                             <TableHead>Cumulative conversions realized</TableHead>
+                             <TableHead>Incremental this week</TableHead>
+                             <TableHead className="hidden md:table-cell">Interpretation</TableHead>
+                           </TableRow>
+                         </TableHeader>
+                         <TableBody>
+                           {cohortTable.map((row) => (
+                             <TableRow key={row.bucket}>
+                               <TableCell className="font-medium">{row.bucket}</TableCell>
+                               <TableCell>{percentFormatter.format(row.cumulative)}</TableCell>
+                               <TableCell>{percentFormatter.format(row.incremental)}</TableCell>
+                               <TableCell className="hidden md:table-cell text-[11px] text-muted-foreground">
+                                 {row.note}
+                               </TableCell>
+                             </TableRow>
+                           ))}
+                         </TableBody>
+                       </Table>
+                       <p className="text-[11px] text-muted-foreground">
+                         Cohorts approximate how quickly different windows realize conversions. Short windows
+                         overweight lower-funnel activity, while longer windows surface slower, prospecting-driven
+                         revenue that MMM-style models tend to attribute more incremental value to.
+                       </p>
+                     </TabsContent>
+                   </Tabs>
+                 </CardContent>
+               </Card>
+ 
+               <Card className="border-border/80 bg-gradient-to-r from-primary/5 via-background to-accent/5 shadow-sm">
+                 <CardHeader>
+                   <CardTitle className="text-sm flex items-center justify-between gap-3">
+                     Decision-grade summary
+                     <span className="rounded-full bg-background/80 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                       Model: {model === "bayesian_mmm" ? "Bayesian MMM (simplified)" : model.replace("_", " ")}
+                     </span>
+                   </CardTitle>
+                   <CardDescription className="text-xs max-w-2xl">
+                     Based on the current assumptions, the system recommends reallocating budget away from over-credited
+                     lower-funnel impressions towards under-credited demand creation to improve blended CAC.
+                   </CardDescription>
+                 </CardHeader>
+                 <CardContent className="grid gap-4 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.2fr)] items-start">
+                   <div className="space-y-2 text-xs">
+                     <p>
+                       Reallocating approximately <span className="font-semibold">30% of spend</span> from
+                       over-credited channels to under-credited channels improves modeled blended CAC by roughly
+                       <span className="font-semibold"> {percentFormatter.format(simulatedEfficiencyGain)}</span> while
+                       preserving overall volume.
+                     </p>
+                     <p className="text-muted-foreground">
+                       The exact mix will depend on your vertical, payback targets, and appetite for short-term
+                       volatility, but the directional signal is robust across most noise scenarios.
+                     </p>
+                   </div>
+ 
+                   <div className="rounded-lg border bg-background/70 p-3">
+                     <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                       Budget reallocation (directional)
+                     </p>
+                     <Table className="text-xs">
+                       <TableHeader>
+                         <TableRow>
+                           <TableHead className="w-[40%]">Channel</TableHead>
+                           <TableHead>Before</TableHead>
+                           <TableHead>After</TableHead>
+                         </TableRow>
+                       </TableHeader>
+                       <TableBody>
+                         {budgetPlan.map((row) => (
+                           <TableRow key={row.channel}>
+                             <TableCell className="font-medium">{row.channel}</TableCell>
+                             <TableCell>{currencyFormatter.format(row.before)}</TableCell>
+                             <TableCell>{currencyFormatter.format(row.after)}</TableCell>
+                           </TableRow>
+                         ))}
+                       </TableBody>
+                     </Table>
+                     <p className="mt-2 text-[11px] text-muted-foreground">
+                       Totals are normalized to maintain a monthly budget of {currencyFormatter.format(afterSpendTotal)}
+                       . Figures are indicative, not prescriptive.
+                     </p>
+                   </div>
+                 </CardContent>
+               </Card>
+ 
+           </section>
 
         <section aria-labelledby="architecture-overview" className="grid gap-6 rounded-xl bg-card p-6 shadow-sm md:grid-cols-12">
           <div className="md:col-span-4 space-y-3">
