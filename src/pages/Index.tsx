@@ -4,6 +4,8 @@ import {
   BarChart,
   CartesianGrid,
   Legend,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
   XAxis,
@@ -268,6 +270,46 @@ const Index = () => {
     Attributed: Number(o.attributedConversions.toFixed(1)),
   }));
 
+  const weeklySeries = useMemo(
+    () => {
+      const weeks = 12;
+      const baseRoas = blendedROAS || 1;
+      const baseCac = blendedCAC || 1;
+
+      const lagFactor = window === 7 ? 0.6 : window === 14 ? 0.8 : 1;
+      const saturationFactor = saturation === "low" ? 1.05 : saturation === "medium" ? 1 : 0.9;
+      const noiseAmplitude = noise === "low" ? 0.04 : noise === "medium" ? 0.08 : 0.14;
+      const trendDrift = model === "bayesian_mmm" ? 0.015 : model === "time_decay" ? 0.01 : 0.005;
+
+      let seed = Math.floor(totalSpend / 1000 + (model === "bayesian_mmm" ? 17 : model === "time_decay" ? 11 : 5) + window);
+      const rand = () => {
+        seed = (seed * 9301 + 49297) % 233280;
+        return seed / 233280;
+      };
+
+      const startingRoas = baseRoas * lagFactor * saturationFactor;
+      const startingCac = baseCac / (lagFactor * saturationFactor || 1);
+
+      return Array.from({ length: weeks }, (_, idx) => {
+        const weekIndex = idx + 1;
+        const centeredIndex = weekIndex - (weeks / 2 + 0.5);
+        const structuralTrend = 1 + trendDrift * centeredIndex;
+        const shock = 1 + (rand() - 0.5) * 2 * noiseAmplitude;
+        const mmmNoise = 1 + (rand() - 0.5) * noiseAmplitude * 1.5;
+
+        const roas = startingRoas * structuralTrend * shock * mmmNoise;
+        const cac = startingCac * (2 - structuralTrend) * (1 + (rand() - 0.5) * noiseAmplitude);
+
+        return {
+          week: `W${weekIndex}`,
+          ROAS: Number(roas.toFixed(2)),
+          CAC: Number(Math.max(cac, 1).toFixed(0)),
+        };
+      });
+    },
+    [blendedROAS, blendedCAC, window, saturation, noise, model, totalSpend],
+  );
+
   return (
     <div className="min-h-screen bg-[hsl(var(--surface-subtle))]">
       <header className="border-b bg-background/80 backdrop-blur-sm">
@@ -466,9 +508,10 @@ const Index = () => {
                 </CardHeader>
                 <CardContent className="relative z-10 pt-4 space-y-4">
                   <Tabs defaultValue="roas" className="space-y-3">
-                    <TabsList className="grid w-full grid-cols-2 bg-muted/70">
+                    <TabsList className="grid w-full grid-cols-3 bg-muted/70">
                       <TabsTrigger value="roas" className="text-xs">ROAS & CAC</TabsTrigger>
                       <TabsTrigger value="incremental" className="text-xs">Incremental vs. attributed</TabsTrigger>
+                      <TabsTrigger value="time" className="text-xs">Time-series (weekly)</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="roas" className="space-y-3">
@@ -521,8 +564,63 @@ const Index = () => {
                         </ResponsiveContainer>
                       </div>
                     </TabsContent>
-                  </Tabs>
 
+                    <TabsContent value="time" className="space-y-3">
+                      <div className="h-56">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={weeklySeries}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" />
+                            <XAxis dataKey="week" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                            <YAxis
+                              yAxisId="left"
+                              tick={{ fontSize: 11 }}
+                              tickLine={false}
+                              axisLine={false}
+                              label={{ value: "ROAS", angle: -90, position: "insideLeft", fontSize: 10 }}
+                            />
+                            <YAxis
+                              yAxisId="right"
+                              orientation="right"
+                              tick={{ fontSize: 11 }}
+                              tickLine={false}
+                              axisLine={false}
+                              label={{ value: "CAC", angle: 90, position: "insideRight", fontSize: 10 }}
+                            />
+                            <RechartsTooltip
+                              contentStyle={{ fontSize: 11 }}
+                              formatter={(value: number, name: string) =>
+                                name === "ROAS" ? numberFormatter.format(value) : currencyFormatter.format(value)
+                              }
+                            />
+                            <Legend formatter={(value) => <span className="text-xs">{value}</span>} />
+                            <Line
+                              yAxisId="left"
+                              type="monotone"
+                              dataKey="ROAS"
+                              stroke="hsl(var(--primary))"
+                              strokeWidth={2}
+                              dot={false}
+                              activeDot={{ r: 3 }}
+                            />
+                            <Line
+                              yAxisId="right"
+                              type="monotone"
+                              dataKey="CAC"
+                              stroke="hsl(var(--accent))"
+                              strokeWidth={2}
+                              dot={false}
+                              activeDot={{ r: 3 }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Weekly trends incorporate cohort-based conversion lags, saturation effects, and MMM-style noise to
+                        illustrate how apparent performance can drift over time even when underlying demand is stable.
+                      </p>
+                    </TabsContent>
+                  </Tabs>
+ 
                   <div className="mt-2 rounded-lg border border-dashed border-border/70 bg-muted/60 p-3 text-xs text-muted-foreground">
                     <p>
                       Confidence bands are directional. Longer windows and Bayesian MMM assumptions generally increase
