@@ -17,6 +17,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const CHANNELS = ["Meta", "Google Search", "LinkedIn"] as const;
 
@@ -412,25 +414,30 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-[hsl(var(--surface-subtle))]">
-      <header className="border-b bg-background/80 backdrop-blur-sm">
-        <div className="container mx-auto flex flex-col gap-4 px-4 py-6 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-1">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Production-Grade Reference Implementation
+      <header className="border-b bg-background/90 backdrop-blur-sm">
+        <div className="container mx-auto flex flex-col gap-4 px-4 py-8 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-2 max-w-2xl">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Interactive case study · B2B SaaS attribution
             </p>
-            <h1>End-to-End Marketing Attribution System</h1>
-            <p className="max-w-2xl text-sm md:text-base text-muted-foreground">
-              Unified data pipeline and attribution modeling framework to calculate true ROAS across Meta, Google,
-              and LinkedIn using normalized, decision-grade signals.
+            <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-foreground">
+              End-to-End Marketing Attribution System
+            </h1>
+            <p className="text-sm md:text-base text-muted-foreground">
+              Unified data pipeline ingesting API data into BigQuery for cross-channel comparison, incrementality
+              measurement, and budget optimization.
             </p>
           </div>
-          <div className="flex flex-col items-start gap-2 md:items-end">
-            <Badge variant="outline" className="border-primary/30 bg-primary/5 text-xs font-medium">
-              Executive-ready · Synthetic dataset
+          <div className="flex flex-col items-start gap-3 md:items-end">
+            <Badge
+              variant="outline"
+              className="border-primary/40 bg-primary/5 px-3 py-1 text-[11px] font-medium text-primary-foreground shadow-sm"
+            >
+              → Shifted ~30% budget to high-performing channels
             </Badge>
-            <p className="text-xs text-muted-foreground max-w-xs text-right">
-              Adjust inputs to explore how attribution, saturation, and noise alter channel-level ROAS, CAC, and
-              incremental value.
+            <p className="max-w-xs text-[11px] text-muted-foreground text-right">
+              Built as a production-grade reference for executive stakeholders assessing decision-grade attribution and
+              MMM.
             </p>
           </div>
         </div>
@@ -443,25 +450,46 @@ const Index = () => {
           className="grid gap-6 rounded-xl bg-card p-6 shadow-sm md:grid-cols-12"
         >
           <div className="md:col-span-5 space-y-3">
-            <h2 id="problem-context">Why platform-reported ROAS is not decision-grade</h2>
+            <h2 id="problem-context">Why platform-reported ROAS fails</h2>
             <p className="text-sm text-muted-foreground max-w-xl">
-              Most dashboards mirror ad platform reporting. This section summarizes where those numbers fail when you
-              are allocating millions in cross-channel budget.
+              Executive teams are often making multi-million dollar allocation decisions on top of siloed,
+              last-click-biased reporting surfaces that systematically over-credit lower-funnel spend.
             </p>
           </div>
-          <div className="md:col-span-7 grid gap-3 text-sm text-muted-foreground">
-            <div className="rounded-lg bg-muted/60 p-3">
-              • Platform-reported ROAS is fragmented and structurally biased toward the last observable click.
+          <div className="md:col-span-7 grid gap-4 md:grid-cols-2 text-sm text-muted-foreground">
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-foreground/80">
+                Where the numbers break
+              </p>
+              <div className="rounded-lg bg-muted/60 p-3">
+                • Platform silos: each network claims 100% credit for the same conversion.
+              </div>
+              <div className="rounded-lg bg-muted/60 p-3">
+                • Last-click bias over-credits branded search, retargeting, and bottom-funnel campaigns.
+              </div>
+              <div className="rounded-lg bg-muted/60 p-3">
+                • Little to no visibility into incrementality or marginal ROI by channel.
+              </div>
+              <div className="rounded-lg bg-muted/60 p-3">
+                • No reliable answer to “where should the next $10K go?” across channels.
+              </div>
             </div>
-            <div className="rounded-lg bg-muted/60 p-3">
-              • Brand search, retargeting, and lower-funnel formats are systematically over-credited relative to their
-              true incremental contribution.
-            </div>
-            <div className="rounded-lg bg-muted/60 p-3">
-              • Upper-funnel and prospecting channels that create net new demand are consistently undervalued.
-            </div>
-            <div className="rounded-lg bg-muted/60 p-3">
-              • Decision-makers lack marginal ROI visibility and cannot see where the next dollar should move.
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-foreground/80">
+                What decision-makers need instead
+              </p>
+              <div className="rounded-lg bg-secondary/70 p-3">
+                • Unified, de-duplicated view of revenue and conversions across all paid and organic touches.
+              </div>
+              <div className="rounded-lg bg-secondary/70 p-3">
+                • Side-by-side comparison of platform-reported vs. modeled performance.
+              </div>
+              <div className="rounded-lg bg-secondary/70 p-3">
+                • Incrementality-aware ROAS, CAC, and iROAS by channel, region, and audience.
+              </div>
+              <div className="rounded-lg bg-secondary/70 p-3">
+                • Clear budget recommendations with quantified upside and confidence bands.
+              </div>
             </div>
           </div>
         </section>
@@ -529,13 +557,17 @@ const Index = () => {
                       <SelectTrigger className="h-9 text-xs">
                         <SelectValue placeholder="Select model" />
                       </SelectTrigger>
-                      <SelectContent className="text-xs">
-                        <SelectItem value="last_click">Last-click</SelectItem>
-                        <SelectItem value="position_based">Position-based (40-20-40)</SelectItem>
-                        <SelectItem value="time_decay">Time-decay</SelectItem>
+                      <SelectContent className="text-xs max-h-72">
+                        <SelectItem value="last_click">Last click (rule-based)</SelectItem>
+                        <SelectItem value="position_based">Position-based / U-shaped (40-20-40)</SelectItem>
+                        <SelectItem value="time_decay">Time-decay (recency weighted)</SelectItem>
                         <SelectItem value="bayesian_mmm">Bayesian MMM (simplified)</SelectItem>
                       </SelectContent>
                     </Select>
+                    <p className="text-[11px] text-muted-foreground leading-snug">
+                      Below, you&apos;ll see a gallery of additional models (Shapley, Markov, MMM, geo-lift) and when they
+                      are appropriate. The selector here drives the synthetic numbers in this case study.
+                    </p>
                   </div>
 
                   <div className="space-y-2">
@@ -1046,40 +1078,60 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Known limitations */}
+        {/* Known limitations & methodology */}
         <section aria-labelledby="limitations" className="rounded-xl bg-card p-6 shadow-sm">
           <div className="space-y-3">
-            <h2 id="limitations">What this system does NOT claim</h2>
+            <h2 id="limitations">Methodology & limitations</h2>
             <p className="text-sm text-muted-foreground max-w-3xl">
-              The goal is decision support, not absolute truth. A credible attribution system is explicit about where it
-              is approximate, biased, or structurally constrained.
+              This case study is intentionally honest about what attribution and MMM can and cannot do. The goal is
+              decision support, not a single source of truth.
             </p>
           </div>
           <div className="mt-4 grid gap-3 text-sm text-muted-foreground md:grid-cols-2">
             <div className="rounded-lg bg-muted/70 p-3">
-              • Attribution models estimate contribution, they do not prove causality.
+              • Attribution estimates contribution, it does not prove causation for any given conversion.
             </div>
             <div className="rounded-lg bg-muted/70 p-3">
-              • MMM struggles with short time windows, sparse data, and rapidly changing baselines.
+              • MMM requires sufficiently long, stable time series and can struggle with rapid structural breaks.
             </div>
             <div className="rounded-lg bg-muted/70 p-3">
-              • Platform-optimized campaigns introduce feedback bias into both experiments and models.
+              • Platform feedback loops (auto-bidding, optimization goals) bias both experiments and models.
             </div>
             <div className="rounded-lg bg-muted/70 p-3">
-              • Results should guide human judgment, not fully replace strategic decision-making.
+              • Results should guide expert judgment and scenario planning, not fully replace strategic decisions.
             </div>
           </div>
         </section>
 
-        {/* Footer disclaimer */}
-        <footer className="mb-8 flex flex-col gap-2 border-t pt-4 text-xs text-muted-foreground md:flex-row md:items-center md:justify-between">
-          <p>
-            This is a production-grade reference architecture using synthetic and anonymized data. No client data or
-            live ad platform APIs are used.
-          </p>
-          <p className="text-[11px]">
-            Attribution ≠ causality. Use this as a structured lens on trade-offs, not a single source of truth.
-          </p>
+        {/* Footer CTA + disclaimer */}
+        <footer className="mb-8 flex flex-col gap-4 border-t pt-6 text-xs text-muted-foreground">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                Want decision-grade attribution for your organization?
+              </p>
+              <p className="mt-1 text-[11px] max-w-xl">
+                I work with B2B and PLG teams to design and implement end-to-end data pipelines, attribution models, and
+                MMM that executives actually trust.
+              </p>
+            </div>
+            <a
+              href="https://calendly.com"
+              target="_blank"
+              rel="noreferrer"
+              className="self-start md:self-auto"
+            >
+              <Button size="sm" className="text-xs font-medium">
+                Start a conversation
+              </Button>
+            </a>
+          </div>
+          <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between text-[11px]">
+            <p>
+              This is a reference implementation using synthetic data. No client or proprietary data is used.
+            </p>
+            <p>Attribution ≠ causation. Use this as a structured lens on trade-offs, not a single source of truth.</p>
+          </div>
         </footer>
       </main>
     </div>
