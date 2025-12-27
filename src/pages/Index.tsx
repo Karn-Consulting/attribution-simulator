@@ -414,6 +414,31 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-[hsl(var(--surface-subtle))]">
+      {/* Prateek Karn Site Header */}
+      <div className="w-full py-4 sm:py-5 md:py-6 px-4 sm:px-6 lg:px-8 bg-[#f5f5f0] border-b border-[#e8e6e1]">
+        <div className="max-w-6xl mx-auto flex justify-between items-center">
+          <a 
+            href="https://prateekkarn.com" 
+            className="font-serif text-lg sm:text-xl md:text-2xl text-[#1a1a1a] hover:text-[#4a4a4a] transition-colors"
+          >
+            Prateek Karn
+          </a>
+          <nav className="flex gap-6 md:gap-8">
+            <a 
+              href="https://prateekkarn.com" 
+              className="text-sm font-medium text-[#8b8578] hover:text-[#1a1a1a] transition-colors"
+            >
+              Home
+            </a>
+            <a 
+              href="https://prateekkarn.com/mywork" 
+              className="text-sm font-medium text-[#1a1a1a] transition-colors"
+            >
+              My Work
+            </a>
+          </nav>
+        </div>
+      </div>
       <header className="border-b bg-background/90 backdrop-blur-sm">
         <div className="container mx-auto flex flex-col gap-4 px-4 py-8 md:flex-row md:items-center md:justify-between">
           <div className="space-y-2 max-w-2xl">
@@ -431,7 +456,7 @@ const Index = () => {
           <div className="flex flex-col items-start gap-3 md:items-end">
             <Badge
               variant="outline"
-              className="border-primary/40 bg-primary/5 px-3 py-1 text-[11px] font-medium text-primary-foreground shadow-sm"
+              className="border-[#8b7355] bg-[#8b7355] px-4 py-2 text-xs font-medium text-white shadow-md"
             >
               → Shifted ~30% budget to high-performing channels
             </Badge>
@@ -1134,6 +1159,70 @@ const Index = () => {
           </div>
         </footer>
       </main>
+
+      {/* Prateek Karn Site Footer */}
+      <footer className="relative overflow-hidden" style={{ backgroundColor: '#1a1a1a' }}>
+        <div className="relative z-10 px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+          <div className="max-w-6xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
+              {/* Left Column */}
+              <div className="text-center lg:text-left">
+                <a href="https://prateekkarn.com" className="inline-block mb-6">
+                  <span className="font-serif text-4xl sm:text-5xl font-normal text-[#c9b896] tracking-[0.08em]">
+                    PK
+                  </span>
+                </a>
+                <h3 className="font-serif text-2xl sm:text-3xl font-normal text-[#f5f5dc] mb-6 leading-relaxed tracking-wide">
+                  Architect Your Advantage
+                </h3>
+                <div className="flex flex-col gap-4">
+                  <a 
+                    href="mailto:prateek.karn@prateekkarn.com"
+                    className="inline-flex items-center gap-3 text-[#c9b896] hover:brightness-125 transition-all duration-300 text-sm sm:text-base justify-center lg:justify-start"
+                  >
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <span className="font-medium">prateek.karn@prateekkarn.com</span>
+                  </a>
+                  <a 
+                    href="https://linkedin.com/in/prateekkarn" 
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-3 text-[#c9b896] hover:brightness-125 transition-all duration-300 text-sm sm:text-base justify-center lg:justify-start"
+                  >
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                    </svg>
+                    <span className="font-medium">LinkedIn</span>
+                  </a>
+                </div>
+              </div>
+              {/* Right Column */}
+              <div className="text-center lg:text-left">
+                <h4 className="font-serif text-xl sm:text-2xl font-normal text-[#f5f5dc] mb-4 leading-relaxed tracking-wide">
+                  Explore More Work
+                </h4>
+                <div className="flex flex-col gap-3">
+                  <a href="https://prateekkarn.com/mywork#ai-frameworks" className="text-[#c9b896] hover:brightness-125 transition-all text-sm">AI & Decision Frameworks</a>
+                  <a href="https://prateekkarn.com/mywork#marketing-data" className="text-[#c9b896] hover:brightness-125 transition-all text-sm">Marketing Data Science</a>
+                  <a href="https://prateekkarn.com/mywork#dashboards" className="text-[#c9b896] hover:brightness-125 transition-all text-sm">Dashboards & BI</a>
+                </div>
+              </div>
+            </div>
+            <div className="border-t border-[#333] mt-12 pt-8">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <p className="text-white/50 text-xs sm:text-sm">© 2025 Prateek Karn. All rights reserved.</p>
+                <div className="flex items-center gap-4 text-xs sm:text-sm">
+                  <a href="https://prateekkarn.com/privacy-policy" className="text-white/50 hover:text-[#c9b896] transition-colors">Privacy Policy</a>
+                  <span className="text-white/30">|</span>
+                  <a href="https://prateekkarn.com/terms-and-conditions" className="text-white/50 hover:text-[#c9b896] transition-colors">Terms & Conditions</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
