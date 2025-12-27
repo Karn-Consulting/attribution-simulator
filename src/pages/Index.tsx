@@ -682,7 +682,7 @@ const Index = () => {
                     <TabsContent value="roas" className="space-y-3">
                       <div className="h-56">
                         <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={roasChartData} barGap={8}>
+                          <BarChart data={roasChartData} barGap={4} barCategoryGap="20%">
                             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" />
                             <XAxis dataKey="channel" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
                             <YAxis
@@ -707,8 +707,8 @@ const Index = () => {
                               }
                             />
                             <Legend formatter={(value) => <span className="text-xs">{value}</span>} />
-                            <Bar yAxisId="left" dataKey="ROAS" fill="hsl(var(--primary))" radius={4} />
-                            <Bar yAxisId="right" dataKey="CAC" fill="hsl(var(--accent))" radius={4} />
+                            <Bar yAxisId="left" dataKey="ROAS" fill="hsl(var(--primary))" radius={4} maxBarSize={45} />
+                            <Bar yAxisId="right" dataKey="CAC" fill="hsl(var(--accent))" radius={4} maxBarSize={45} />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
